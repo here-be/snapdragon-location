@@ -12,8 +12,8 @@
  * lexer.capture('slash', /^\//);
  * lexer.capture('text', /^\w+/);
  *
- * var loc = location(lexer);
- * var token = loc(lexer.advance());
+ * const loc = location(lexer);
+ * const token = loc(lexer.advance());
  * console.log(token);
  * ```
  * @param {String|Object} `name` (optional) Snapdragon Lexer or Tokenizer instance, or the name to use for the location property on the token. Default is `toc`.
@@ -40,9 +40,9 @@ function location(name, target) {
  * to tokens when the `.lex()` or `.handle()` methods are used.
  *
  * ```js
- * var Lexer = require('snapdragon-lexer');
- * var location = require('snapdragon-location');
- * var lexer = new Lexer();
+ * const Lexer = require('snapdragon-lexer');
+ * const location = require('snapdragon-location');
+ * const lexer = new Lexer();
  * lexer.use(location());
  * ```
  * @api public

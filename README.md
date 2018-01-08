@@ -57,8 +57,8 @@ const lexer = new Lexer('foo/bar');
 lexer.capture('slash', /^\//);
 lexer.capture('text', /^\w+/);
 
-var loc = location(lexer);
-var token = loc(lexer.advance());
+const loc = location(lexer);
+const token = loc(lexer.advance());
 console.log(token);
 ```
 
@@ -69,9 +69,9 @@ Use as a plugin to add a `.location` method to your [snapdragon-lexer](https://g
 **Example**
 
 ```js
-var Lexer = require('snapdragon-lexer');
-var location = require('snapdragon-location');
-var lexer = new Lexer();
+const Lexer = require('snapdragon-lexer');
+const location = require('snapdragon-location');
+const lexer = new Lexer();
 lexer.use(location());
 ```
 
