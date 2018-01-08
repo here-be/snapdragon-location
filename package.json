@@ -17,12 +17,13 @@
     "node": ">=6"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "nyc mocha"
   },
   "devDependencies": {
     "@sellside/emitter": "^1.2.1",
     "gulp-format-md": "^1.0.0",
     "mocha": "^3.5.3",
+    "nyc": "^11.4.1",
     "snapdragon-lexer": "^1.0.0",
     "use": "^3.1.0"
   },
@@ -40,6 +41,12 @@
     "snapdragon",
     "transform"
   ],
+  "nyc": {
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
+  },
   "verb": {
     "toc": false,
     "layout": "default",
@@ -51,15 +58,15 @@
     ],
     "related": {
       "list": [
-        "snapdragon",
         "snapdragon-capture",
         "snapdragon-node",
         "snapdragon-util"
       ]
     },
     "reflinks": [
-      "verb",
-      "verb-generate-readme"
+      "snapdragon-lexer",
+      "snapdragon-position",
+      "snapdragon-tokenizer"
     ],
     "lint": {
       "reflinks": true
