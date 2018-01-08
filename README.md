@@ -1,6 +1,6 @@
-# snapdragon-position [![NPM version](https://img.shields.io/npm/v/snapdragon-position.svg?style=flat)](https://www.npmjs.com/package/snapdragon-position) [![NPM monthly downloads](https://img.shields.io/npm/dm/snapdragon-position.svg?style=flat)](https://npmjs.org/package/snapdragon-position) [![NPM total downloads](https://img.shields.io/npm/dt/snapdragon-position.svg?style=flat)](https://npmjs.org/package/snapdragon-position) [![Linux Build Status](https://img.shields.io/travis/here-be-snapdragons/snapdragon-position.svg?style=flat&label=Travis)](https://travis-ci.org/here-be-snapdragons/snapdragon-position)
+# snapdragon-location [![NPM version](https://img.shields.io/npm/v/snapdragon-location.svg?style=flat)](https://www.npmjs.com/package/snapdragon-location) [![NPM monthly downloads](https://img.shields.io/npm/dm/snapdragon-location.svg?style=flat)](https://npmjs.org/package/snapdragon-location) [![NPM total downloads](https://img.shields.io/npm/dt/snapdragon-location.svg?style=flat)](https://npmjs.org/package/snapdragon-location) [![Linux Build Status](https://img.shields.io/travis/here-be/snapdragon-location.svg?style=flat&label=Travis)](https://travis-ci.org/here-be/snapdragon-location)
 
-> Snapdragon util and plugin for patching the position on an AST node.
+> Adds a location object to snapdragon token or AST node.
 
 Please consider following this project's author, [Jon Schlinkert](https://github.com/jonschlinkert), and consider starring the project to show your :heart: and support.
 
@@ -9,167 +9,255 @@ Please consider following this project's author, [Jon Schlinkert](https://github
 Install with [npm](https://www.npmjs.com/):
 
 ```sh
-$ npm install --save snapdragon-position
+$ npm install --save snapdragon-location
 ```
 
 ## What does this do?
 
-When used as a plugin, this adds a `.position()` method to a [snapdragon-lexer][] instance, for adding [position information](#position-information) to tokens.
-
-**Example**
+Adds a `.loc` object to tokens that looks something like this:
 
 ```js
-const position = require('snapdragon-position');
-const Lexer = require('snapdragon-lexer');
-const lexer = new Lexer('foo/bar');
-lexer.use(position());
-
-lexer.capture('slash', /^\//);
-lexer.capture('text', /^\w+/);
-
-var token = lexer.advance();
-console.log(token);
-```
-
-Adds a `.position` object to the token, like this:
-
-```js
-Token {
-  type: 'text',
-  val: 'foo',
-  match: [ 'foo', index: 0, input: 'foo/*' ],
-  position: {
-    start: { index: 0, column: 1, line: 1 },
-    end: { index: 3, column: 4, line: 1 },
-    range: [0, 3] // range is a getter
-  } 
+{
+  source: 'string',
+  start: { index: 0, column: 1, line: 1 },
+  end: { index: 3, column: 4, line: 1 },
+  range: [0, 3] // getter
 }
 ```
 
-## Usage
+When used as [snapdragon-lexer](https://github.com/here-be-snapdragons/snapdragon-lexer) plugin, this adds a `.location()` method to the instance and patches the `lexer.lex()` and `lexer.handle()` methods to automatically add [location objects](#location-objects) to tokens.
 
-The main export is a function that can either be called directly to add a `.position` to a single token, or used as a plugin function with `lexer.use()`.
+There is a more [detailed example](#example-usage) below.
 
-### [position](index.js#L52)
+**Heads up!**
+
+If you prefer `.position` over `.loc`, use [snapdragon-position](https://github.com/here-be/snapdragon-position) instead.
+
+## API
+
+The main export is a function that can either be called directly with a `token` to add a `.loc` object to the token, or used as a plugin function with `lexer.use()`.
+
+### [location](index.js#L25)
 
 Sets the `start` location and returns a function for setting the `end` location.
 
 **Params**
 
-* `lexer` **{Object}**: Lexer instance
+* `name` **{String|Object}**: (optional) Snapdragon Lexer or Tokenizer instance, or the name to use for the location property on the token. Default is `toc`.
+* `target` **{Object}**: Snapdragon Lexer or Tokenizer instance
 * `returns` **{Function}**: Returns a function that takes a `token` as its only argument
 
 **Example**
 
 ```js
-const position = require('snapdragon-position');
+const location = require('snapdragon-location');
 const Lexer = require('snapdragon-lexer');
 const lexer = new Lexer('foo/bar');
 
 lexer.capture('slash', /^\//);
 lexer.capture('text', /^\w+/);
 
-var pos = position(lexer);
-var token = pos(lexer.advance());
+var loc = location(lexer);
+var token = loc(lexer.advance());
 console.log(token);
 ```
 
-### [.plugin](index.js#L79)
+### [.plugin](index.js#L51)
 
-Alternatively, you can use the main export as a plugin to add a `.position` method to your [snapdragon-lexer][] instance, which automatically adds a position object to tokens when the `.lex()` method is used.
+Use as a plugin to add a `.location` method to your [snapdragon-lexer](https://github.com/here-be-snapdragons/snapdragon-lexer) or [snapdragon-tokenizer][] instance to automatically add a location object to tokens when the `.lex()` or `.handle()` methods are used.
 
 **Example**
 
 ```js
 var Lexer = require('snapdragon-lexer');
-var position = require('snapdragon-position');
+var location = require('snapdragon-location');
 var lexer = new Lexer();
-lexer.use(position());
-// or
-lexer.use(position.plugin());
+lexer.use(location());
 ```
 
-### [.location](index.js#L102)
+### [.position](index.js#L73)
 
-Get the current cursor location, with `index`, `line` and `column`. This is used in the [.position()](#position) method to add the "start" and "end" locations to the position object, you can also call it directly when needed.
+Get the current source position, with `index`, `column` and `line`. Used by [.location()](#location) to create the "start" and "end" positions.
 
-* `returns` **{Object}**: Returns an object with the current lexer location, with cursor `index`, `line`, and `column` numbers.
+* `returns` **{Object}**: Returns an object with the current source position.
 
 **Example**
 
 ```js
 const Lexer = require('snapdragon-lexer');
 const lexer = new Lexer();
-console.log(lexer.location());
-//=> Location { index: 0, line: 1, column: 1 };
+console.log(lexer.position());
+//=> Position { index: 0, column: 0, line: 1 };
 ```
 
-### [.position](index.js#L126)
+### [.location](index.js#L97)
 
-Returns a function for getting the current position.
+Returns a function for getting the current location.
 
-* `returns` **{Function}**: Returns a function that takes a `token` as its only argument
+* `returns` **{Function}**: Returns a function that takes a `token` as its only argument, and patches a `.loc` property onto the token.
 
 **Example**
 
 ```js
 const Lexer = require('snapdragon-lexer');
 const lexer = new Lexer('foo/bar');
-lexer.use(position());
+lexer.use(location());
 
 lexer.set('text', function(tok) {
-  // get start position before advancing lexer
-  const pos = this.position();
+  // get start location before advancing lexer
+  const loc = this.location();
   const match = this.match(/^\w+/);
   if (match) {
-    // get end position after advancing lexer (with .match)
-    return pos(this.token(match));
+    // get end location after advancing lexer (with .match)
+    return loc(this.token(match));
   }
 });
 ```
 
-## Position information
+**Params**
 
-```js
-Position {
-  start: Location { index: 0, column: 1, line: 1 },
-  end: Location { index: 3, column: 4, line: 1 },
-  range: [getter] // [start.index, end.index]
-} 
-```
-
-## Customization
-
-### Use .loc instead of .position
-
-Currently no options are supported for this, but you can easily patch the `Token` used by the lexer.
+* `start` **{Object}**: (required) Starting [position](#position)
+* `end` **{Object}**: (required) Ending [position](#position)
+* `target` **{Object}**: (optional) Snapdragon Lexer or Tokenizer instance
+* `returns` **{Object}**
 
 **Example**
 
 ```js
 const Lexer = require('snapdragon-lexer');
-const lexer = new Lexer();
-
-Object.defineProperty(lexer.Token.prototype, 'tok', {
-  get: function() {
-    return this.position;
-  }
-});
+const Position = require('snapdragon-location').Position;
+const lexer = new Lexer('foo/bar');
+lexer.capture('text', /^\w+/);
+lexer.advance();
+console.log(new Position(lexer));
+//=> Position { index: 3, column: 4, line: 1 }
 ```
 
-### Set .range on token
+**Params**
 
-Currently, range is a getter on `token.position.range`. If you want `range` to be on the token, instead of `token.position`, you will need to patch the Token prototype.
+* `start` **{Object}**: (required) Starting [position](#position)
+* `end` **{Object}**: (required) Ending [position](#position)
+* `target` **{Object}**: (optional) Snapdragon Lexer or Tokenizer instance
+* `returns` **{Object}**
+
+**Example**
 
 ```js
 const Lexer = require('snapdragon-lexer');
-const lexer = new Lexer();
+const location = require('snapdragon-position');
+const lexer = new Lexer('foo/bar')
+  .capture('slash', /^\//)
+  .capture('text', /^\w+/);
 
-Object.defineProperty(lexer.Token.prototype, 'range', {
-  get: function() {
-    return this.position.range;
+const start = new location.Position(lexer);
+lexer.advance();
+const end = new location.Position(lexer);
+console.log(new location.Location(start, end, lexer));
+// Location {
+//   source: undefined,
+//   start: Position { index: 0, column: 1, line: 1 },
+//   end: Position { index: 3, column: 4, line: 1 } }
+```
+
+## Token objects
+
+See the [Token documentation](https://github.com/here-be/snapdragon-token/blob/master/README.md#token-object) for more details about the `Token` object.
+
+```js
+interface Token {
+  type: string;
+  value: string;
+  match: array | undefined;
+  loc: Location;
+}
+```
+
+## Location objects
+
+The `token.loc` property contains source string location information on the token.
+
+```js
+interface Location {
+  source: string | undefined;
+  start: Position;
+  end: Position;
+  range: array (getter)
+}
+```
+
+* `source` **{string|undefined}** - the source location provided by `lexer.options.source`. Typically this is a filename, but could also be `string` or any user defined value.
+* `start` **{object}** - start [position object](#position-objects), which is the position of the _first character of_ the lexed source string.
+* `end` **{object}** - end [position object](#position-objects), which is the position of the _last character of_ the lexed source string.
+* `range` **{array}** - getter that returns an array with the following values: `[loc.start.index, loc.end.index]`
+
+## Position objects
+
+Each `Position` object consists of an `index` number (0-based), a `column` number (0-based), and a `line` number (1-based):
+
+```js
+interface Position {
+  index: number; // >= 0
+  column: number; // >= 0,
+  line: number; // >= 1
+}
+```
+
+* `line` **{string|undefined}** - the source location provided by `lexer.options.source`. Typically this is a filename, but could also be `string` or any user defined value.
+* `column` **{object}** - start [position object](#position-objects), which is the position of the _first character of_ the lexed source string.
+* `end` **{object}** - end [position object](#position-objects), which is the position of the _last character of_ the lexed source string.
+
+## Example usage
+
+```js
+const Lexer = require('snapdragon-lexer');
+const lexer = new Lexer('foo/*', { source: 'string' });
+lexer.use(location());
+lexer.capture('star', /^\*/);
+lexer.capture('slash', /^\//);
+lexer.capture('text', /^\w+/);
+
+lexer.tokenize();
+console.log(lexer.tokens);
+```
+
+Results in:
+
+```js
+[
+  {
+    type: 'text',
+    val: 'foo',
+    match: ['foo', index: 0, input: 'foo/*'],
+    loc: {
+      source: 'string',
+      start: { index: 0, column: 1, line: 1 },
+      end: { index: 3, column: 4, line: 1 },
+      range: [0, 3]
+    }
+  },
+  {
+    type: 'slash',
+    val: '/',
+    match: ['/', index: 0, input: '/*'],
+    loc: {
+      source: 'string',
+      start: { index: 3, column: 4, line: 1 },
+      end: { index: 4, column: 5, line: 1 },
+      range: [3, 4]
+    }
+  },
+  {
+    type: 'star',
+    val: '*',
+    match: ['*', index: 0, input: '*'],
+    loc: {
+      source: 'string',
+      start: { index: 4, column: 5, line: 1 },
+      end: { index: 5, column: 6, line: 1 },
+      range: [4, 5]
+    }
   }
-});
+]
 ```
 
 ## About
@@ -193,7 +281,6 @@ $ npm install && npm test
 ```
 
 </details>
-
 <details>
 <summary><strong>Building docs</strong></summary>
 
@@ -214,7 +301,6 @@ You might also be interested in these projects:
 * [snapdragon-capture](https://www.npmjs.com/package/snapdragon-capture): Snapdragon plugin that adds a capture method to the parser instance. | [homepage](https://github.com/jonschlinkert/snapdragon-capture "Snapdragon plugin that adds a capture method to the parser instance.")
 * [snapdragon-node](https://www.npmjs.com/package/snapdragon-node): Snapdragon utility for creating a new AST node in custom code, such as plugins. | [homepage](https://github.com/jonschlinkert/snapdragon-node "Snapdragon utility for creating a new AST node in custom code, such as plugins.")
 * [snapdragon-util](https://www.npmjs.com/package/snapdragon-util): Utilities for the snapdragon parser/compiler. | [homepage](https://github.com/jonschlinkert/snapdragon-util "Utilities for the snapdragon parser/compiler.")
-* [snapdragon](https://www.npmjs.com/package/snapdragon): Easy-to-use plugin system for creating powerful, fast and versatile parsers and compilers, with built-in source-map… [more](https://github.com/jonschlinkert/snapdragon) | [homepage](https://github.com/jonschlinkert/snapdragon "Easy-to-use plugin system for creating powerful, fast and versatile parsers and compilers, with built-in source-map support.")
 
 ### Author
 
@@ -226,9 +312,9 @@ You might also be interested in these projects:
 
 ### License
 
-Copyright © 2017, [Jon Schlinkert](https://github.com/jonschlinkert).
+Copyright © 2018, [Jon Schlinkert](https://github.com/jonschlinkert).
 Released under the [MIT License](LICENSE).
 
 ***
 
-_This file was generated by [verb-generate-readme](https://github.com/verbose/verb-generate-readme), v0.6.0, on November 30, 2017._
+_This file was generated by [verb-generate-readme](https://github.com/verbose/verb-generate-readme), v0.6.0, on January 08, 2018._

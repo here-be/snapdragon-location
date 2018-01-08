@@ -1,6 +1,6 @@
 {
   "name": "snapdragon-location",
-  "description": "Patching the location onto a snapdragon AST node.",
+  "description": "Adds a location object to snapdragon token or AST node.",
   "version": "1.0.0",
   "homepage": "https://github.com/here-be/snapdragon-location",
   "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
