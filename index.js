@@ -1,31 +1,6 @@
 'use strict';
 
 /**
- * Create a new Position object with `index`, `column`,
- * and `line`
- */
-
-class Position {
-  constructor(lexer) {
-    this.index = lexer.loc.index;
-    this.column = lexer.loc.column;
-    this.line = lexer.loc.line;
-  }
-}
-
-/**
- * Create a new Location object with `start` and `end`
- * locations.
- */
-
-class Location {
-  constructor(start, end) {
-    this.start = start;
-    this.end = end;
-  }
-}
-
-/**
  * Sets the `start` location and returns a function for setting
  * the `end` location.
  *
@@ -41,61 +16,61 @@ class Location {
  * var token = loc(lexer.advance());
  * console.log(token);
  * ```
- * @param {Object} `lexer` Lexer instance
+ * @param {String|Object} `name` (optional) Snapdragon Lexer or Tokenizer instance, or the name to use for the location property on the token. Default is `toc`.
+ * @param {Object} `target` Snapdragon Lexer or Tokenizer instance
  * @return {Function} Returns a function that takes a `token` as its only argument
  * @api public
  */
 
-function location(lexer) {
-  if (!isLexer(lexer)) return location.plugin();
-  const start = new Position(lexer);
+function location(name, target) {
+  if (isValidInstance(name)) return location('loc', name);
+  if (!isValidInstance(target)) return location.plugin(name);
+  const start = new Position(target);
 
   return (token) => {
-    const end = new Position(lexer);
-    token.loc = new Location(start, end);
-    token.range = [start.index, end.index];
+    token[name] = new Location(start, new Position(target), target);
+    if (target.emit) target.emit('location', token);
     return token;
   };
 }
 
 /**
  * Use as a plugin to add a `.location` method to your [snapdragon-lexer][]
- * instance, which automatically adds a location object to tokens when the
- * `.lex()` method is used.
+ * or [snapdragon-tokenizer][] instance to automatically add a location object
+ * to tokens when the `.lex()` or `.handle()` methods are used.
  *
  * ```js
  * var Lexer = require('snapdragon-lexer');
  * var location = require('snapdragon-location');
  * var lexer = new Lexer();
- * lexer.use(location.plugin());
+ * lexer.use(location());
  * ```
  * @api public
  */
 
-location.plugin = () => {
-  return function(lexer) {
-    if (!lexer.isLexer) {
-      throw new Error('expected a Snapdragon.Lexer instance');
+location.plugin = (name) => {
+  if (typeof name !== 'string') name = 'loc';
+
+  return function(target) {
+    if (!isValidInstance(target)) {
+      throw new Error('expected a snapdragon Lexer or Tokenizer instance');
     }
 
     /**
-     * Get the current cursor position, with `index`, `line` and `column`.
-     * This is used in the [.location()](#location) method to add the "start"
-     * and "end" locations to the location object, you can also call it directly
-     * when needed.
+     * Get the current source position, with `index`, `column` and `line`.
+     * Used by [.location()](#location) to create the "start" and "end" positions.
      *
      * ```js
      * const Lexer = require('snapdragon-lexer');
      * const lexer = new Lexer();
      * console.log(lexer.position());
-     * //=> Position { index: 0, line: 1, column: 1 };
+     * //=> Position { index: 0, column: 0, line: 1 };
      * ```
-     * @return {Object} Returns an object with the current lexer position, with
-     * cursor `index`, `line`, and `column` numbers.
+     * @return {Object} Returns an object with the current source position.
      * @api public
      */
 
-    lexer.position = () => new Position(lexer);
+    target.position = () => new Position(target);
 
     /**
      * Returns a function for getting the current location.
@@ -103,7 +78,7 @@ location.plugin = () => {
      * ```js
      * const Lexer = require('snapdragon-lexer');
      * const lexer = new Lexer('foo/bar');
-     * lexer.use(location.plugin());
+     * lexer.use(location());
      *
      * lexer.set('text', function(tok) {
      *   // get start location before advancing lexer
@@ -115,20 +90,33 @@ location.plugin = () => {
      *   }
      * });
      * ```
-     * @return {Function} Returns a function that takes a `token` as its only argument
+     * @return {Function} Returns a function that takes a `token` as its only argument, and patches a `.loc` property onto the token.
      * @api public
      */
 
-    lexer.location = () => location(lexer);
+    target.location = (key) => location(key || name, target);
 
     /**
      * Override the `.lex` method to automatically patch
      * location onto returned tokens in a future-proof way.
      */
 
-    lexer.lex = (type) => {
-      const loc = lexer.location();
-      const tok = lexer.constructor.prototype.lex.call(lexer, type);
+    target.lex = (type) => {
+      const loc = target.location();
+      const tok = target.constructor.prototype.lex.call(target, type);
+      if (tok) {
+        return loc(tok);
+      }
+    };
+
+    /**
+     * Override the `.handle` method to automatically patch
+     * location onto returned tokens in a future-proof way.
+     */
+
+    target.handle = (type) => {
+      const loc = target.location();
+      const tok = target.constructor.prototype.handle.call(target, type);
       if (tok) {
         return loc(tok);
       }
@@ -136,14 +124,94 @@ location.plugin = () => {
   };
 };
 
-function isLexer(lexer) {
-  return lexer && typeof lexer === 'object' && lexer.isLexer === true;
+/**
+ * Create a new Position object with `index`, `column`, and `line`.
+ *
+ * ```js
+ * const Lexer = require('snapdragon-lexer');
+ * const Position = require('snapdragon-location').Position;
+ * const lexer = new Lexer('foo/bar');
+ * lexer.capture('text', /^\w+/);
+ * lexer.advance();
+ * console.log(new Position(lexer));
+ * //=> Position { index: 3, column: 4, line: 1 }
+ * ```
+ * @param {Object} `start` (required) Starting [position](#position)
+ * @param {Object} `end` (required) Ending [position](#position)
+ * @param {Object} `target` (optional) Snapdragon Lexer or Tokenizer instance
+ * @return {Object}
+ * @api public
+ */
+
+class Position {
+  constructor(lexer) {
+    this.index = lexer.loc.index;
+    this.column = lexer.loc.column;
+    this.line = lexer.loc.line;
+  }
 }
 
 /**
- * Expose `Position` and `Location` classes
+ * Create a new Location with the given `start` and `end` positions.
+ *
+ * ```js
+ * const Lexer = require('snapdragon-lexer');
+ * const location = require('snapdragon-position');
+ * const lexer = new Lexer('foo/bar')
+ *   .capture('slash', /^\//)
+ *   .capture('text', /^\w+/);
+ *
+ * const start = new location.Position(lexer);
+ * lexer.advance();
+ * const end = new location.Position(lexer);
+ * console.log(new location.Location(start, end, lexer));
+ * // Location {
+ * //   source: undefined,
+ * //   start: Position { index: 0, column: 1, line: 1 },
+ * //   end: Position { index: 3, column: 4, line: 1 } }
+ * ```
+ * @param {Object} `start` (required) Starting [position](#position)
+ * @param {Object} `end` (required) Ending [position](#position)
+ * @param {Object} `target` (optional) Snapdragon Lexer or Tokenizer instance
+ * @return {Object}
+ * @api public
+ */
+
+class Location {
+  constructor(start, end, target) {
+    this.source = isValidInstance(target) ? target.options.source : undefined;
+    this.start = start;
+    this.end = end;
+  }
+  get range() {
+    return [this.start.index, this.end.index];
+  }
+}
+
+/**
+ * Returns true if `target` is an instance of snapdragon lexer or tokenizer
+ */
+
+function isValidInstance(target) {
+  if (isObject(target)) {
+    return target.isLexer === true || target.isTokenizer === true;
+  }
+  return false;
+}
+
+function isObject(target) {
+  return target && typeof target === 'object';
+}
+
+/**
+ * Main export
  */
 
 module.exports = location;
-module.exports.Position = Position;
+
+/**
+ * Expose `Location` and `Position` classes as properties on main export
+ */
+
 module.exports.Location = Location;
+module.exports.Position = Position;
