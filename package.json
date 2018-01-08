@@ -1,12 +1,12 @@
 {
   "name": "snapdragon-location",
-  "description": "Snapdragon util and plugin for patching the location on an AST node.",
+  "description": "Patching the location onto a snapdragon AST node.",
   "version": "1.0.0",
-  "homepage": "https://github.com/here-be-snapdragons/snapdragon-location",
+  "homepage": "https://github.com/here-be/snapdragon-location",
   "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
-  "repository": "here-be-snapdragons/snapdragon-location",
+  "repository": "here-be/snapdragon-location",
   "bugs": {
-    "url": "https://github.com/here-be-snapdragons/snapdragon-location/issues"
+    "url": "https://github.com/here-be/snapdragon-location/issues"
   },
   "license": "MIT",
   "files": [
@@ -14,16 +14,17 @@
   ],
   "main": "index.js",
   "engines": {
-    "node": ">=4"
+    "node": ">=6"
   },
   "scripts": {
     "test": "mocha"
   },
   "devDependencies": {
-    "define-property": "^2.0.0",
+    "@sellside/emitter": "^1.2.1",
     "gulp-format-md": "^1.0.0",
     "mocha": "^3.5.3",
-    "use": "^3.0.0"
+    "snapdragon-lexer": "^1.0.0",
+    "use": "^3.1.0"
   },
   "keywords": [
     "compile",

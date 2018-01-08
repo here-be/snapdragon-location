@@ -36,8 +36,8 @@ Changelog entries are classified using the following labels _(from [keep-a-chang
 
 - first commit
 
-[1.0.0]: https://github.com/here-be-snapdragons/snapdragon-token/compare/0.1.0...1.0.0
+[1.0.0]: https://github.com/here-be/snapdragon-token/compare/0.1.0...1.0.0
 [keep-a-changelog]: https://github.com/olivierlacan/keep-a-changelog
 
 
-[lexer]: https://github.com/here-be-snapdragons/snapdragon-lexer
+[lexer]: https://github.com/here-be/snapdragon-lexer
